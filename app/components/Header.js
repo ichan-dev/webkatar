@@ -49,9 +49,16 @@ export default function Header() {
             >
               Kegiatan
             </Link>
-            <a href="#program" className="text-gray-700 hover:text-amber-700 transition-colors pb-1">
+            <Link 
+              href="/arsip" 
+              className={`transition-colors pb-1 ${
+                pathname === "/arsip" 
+                  ? "text-amber-700 hover:text-amber-800 border-b-2 border-amber-600 font-medium" 
+                  : "text-gray-700 hover:text-amber-700"
+              }`}
+            >
               Arsip Program Kerja
-            </a>
+            </Link>
             <button className="bg-amber-700 text-white px-6 py-2 rounded-lg hover:bg-amber-800 transition-colors">
               Login
             </button>
@@ -102,9 +109,16 @@ export default function Header() {
               >
                 Kegiatan
               </Link>
-              <a href="#program" className="text-gray-700 hover:text-amber-700 transition-colors pl-3">
+              <Link 
+                href="/arsip" 
+                className={`transition-colors pl-3 ${
+                  pathname === "/arsip" 
+                    ? "text-amber-700 hover:text-amber-800 font-medium border-l-2 border-amber-600" 
+                    : "text-gray-700 hover:text-amber-700"
+                }`}
+              >
                 Arsip Program Kerja
-              </a>
+              </Link>
               <button className="bg-amber-700 text-white px-6 py-2 rounded-lg hover:bg-amber-800 transition-colors w-full">
                 Login
               </button>
