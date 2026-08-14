@@ -39,9 +39,16 @@ export default function Header() {
             >
               Profil
             </Link>
-            <a href="#kegiatan" className="text-gray-700 hover:text-amber-700 transition-colors pb-1">
+            <Link 
+              href="/kegiatan" 
+              className={`transition-colors pb-1 ${
+                pathname === "/kegiatan" 
+                  ? "text-amber-700 hover:text-amber-800 border-b-2 border-amber-600 font-medium" 
+                  : "text-gray-700 hover:text-amber-700"
+              }`}
+            >
               Kegiatan
-            </a>
+            </Link>
             <a href="#program" className="text-gray-700 hover:text-amber-700 transition-colors pb-1">
               Arsip Program Kerja
             </a>
@@ -85,9 +92,16 @@ export default function Header() {
               >
                 Profil
               </Link>
-              <a href="#kegiatan" className="text-gray-700 hover:text-amber-700 transition-colors pl-3">
+              <Link 
+                href="/kegiatan" 
+                className={`transition-colors pl-3 ${
+                  pathname === "/kegiatan" 
+                    ? "text-amber-700 hover:text-amber-800 font-medium border-l-2 border-amber-600" 
+                    : "text-gray-700 hover:text-amber-700"
+                }`}
+              >
                 Kegiatan
-              </a>
+              </Link>
               <a href="#program" className="text-gray-700 hover:text-amber-700 transition-colors pl-3">
                 Arsip Program Kerja
               </a>
