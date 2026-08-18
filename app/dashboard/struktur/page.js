@@ -1,10 +1,20 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { useRouter } from "next/navigation";
 import DashboardSidebar from "../../components/DashboardSidebar";
 import TambahPeriodeModal from "../../components/TambahPeriodeModal";
 
 export default function KelolaStrukturPage() {
+  const router = useRouter();
+
+  useEffect(() => {
+    const isAuthenticated = localStorage.getItem("isAuthenticated");
+    if (isAuthenticated !== "true") {
+      router.push("/login");
+    }
+  }, [router]);
+
   const [isModalOpen, setIsModalOpen] = useState(false);
 
   const allPeriods = [

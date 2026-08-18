@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 
 export default function LoginPage() {
   const [showPassword, setShowPassword] = useState(false);
@@ -9,10 +10,20 @@ export default function LoginPage() {
     username: "",
     password: ""
   });
+  const [error, setError] = useState("");
+  const router = useRouter();
 
   const handleSubmit = (e) => {
     e.preventDefault();
-    console.log("Login attempt:", formData);
+    setError("");
+
+    if (formData.username === "admin" && formData.password === "admin") {
+      localStorage.setItem("isAuthenticated", "true");
+      localStorage.setItem("username", formData.username);
+      router.push("/");
+    } else {
+      setError("Username atau password salah");
+    }
   };
 
   const handleChange = (e) => {
@@ -80,6 +91,12 @@ export default function LoginPage() {
               <p className="text-gray-600 text-center mb-8">
                 Silakan masuk ke akun Karang Taruna Anda.
               </p>
+
+              {error && (
+                <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-lg">
+                  <p className="text-sm text-red-600 text-center">{error}</p>
+                </div>
+              )}
 
               <form onSubmit={handleSubmit} className="space-y-6">
                 <div>
@@ -151,6 +168,12 @@ export default function LoginPage() {
                   Masuk
                 </button>
               </form>
+
+              <div className="mt-6 text-center">
+                <p className="text-sm text-gray-500">
+                  Demo: username: <span className="font-medium">admin</span>, password: <span className="font-medium">admin</span>
+                </p>
+              </div>
             </div>
           </div>
         </div>

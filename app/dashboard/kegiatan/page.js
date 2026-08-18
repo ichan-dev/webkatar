@@ -1,10 +1,20 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { useRouter } from "next/navigation";
 import DashboardSidebar from "../../components/DashboardSidebar";
 import TambahKegiatanModal from "../../components/TambahKegiatanModal";
 
 export default function KelolaKegiatanPage() {
+  const router = useRouter();
+
+  useEffect(() => {
+    const isAuthenticated = localStorage.getItem("isAuthenticated");
+    if (isAuthenticated !== "true") {
+      router.push("/login");
+    }
+  }, [router]);
+
   const [filterStatus, setFilterStatus] = useState("semua");
   const [currentPage, setCurrentPage] = useState(1);
   const [isModalOpen, setIsModalOpen] = useState(false);

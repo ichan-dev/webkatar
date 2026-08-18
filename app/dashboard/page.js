@@ -1,13 +1,21 @@
+"use client";
+
+import { useEffect } from "react";
+import { useRouter } from "next/navigation";
 import DashboardSidebar from "../components/DashboardSidebar";
 import StatCard from "../components/StatCard";
 import RecentActivities from "../components/RecentActivities";
 
-export const metadata = {
-  title: "Dashboard Admin - Karang Taruna RT 03",
-  description: "Dashboard admin untuk mengelola data Karang Taruna RT 03 Desa Sukamaju",
-};
-
 export default function DashboardPage() {
+  const router = useRouter();
+
+  useEffect(() => {
+    const isAuthenticated = localStorage.getItem("isAuthenticated");
+    if (isAuthenticated !== "true") {
+      router.push("/login");
+    }
+  }, [router]);
+
   return (
     <div className="flex min-h-screen bg-gray-50">
       <DashboardSidebar />
