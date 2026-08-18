@@ -1,3 +1,5 @@
+import Link from "next/link";
+
 export default function ActivitiesSection() {
   const activities = [
     {
@@ -38,15 +40,15 @@ export default function ActivitiesSection() {
               Aksi nyata pemuda untuk lingkungan sekitar.
             </p>
           </div>
-          <a 
-            href="#" 
+          <Link 
+            href="/kegiatan" 
             className="hidden sm:inline-flex items-center text-orange-600 hover:text-orange-700 font-semibold group"
           >
             Lihat Semua Kegiatan
             <svg className="w-5 h-5 ml-2 group-hover:translate-x-1 transition-transform" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
             </svg>
-          </a>
+          </Link>
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -80,15 +82,15 @@ export default function ActivitiesSection() {
         </div>
 
         <div className="mt-8 sm:hidden text-center">
-          <a 
-            href="#" 
+          <Link 
+            href="/kegiatan" 
             className="inline-flex items-center text-orange-600 hover:text-orange-700 font-semibold group"
           >
             Lihat Semua Kegiatan
             <svg className="w-5 h-5 ml-2 group-hover:translate-x-1 transition-transform" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
             </svg>
-          </a>
+          </Link>
         </div>
       </div>
     </section>

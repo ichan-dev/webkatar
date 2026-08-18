@@ -13,7 +13,6 @@ export default function DashboardSidebar() {
     { name: "Kegiatan", path: "/dashboard/kegiatan", icon: "📅" },
     { name: "Dokumen", path: "/dashboard/dokumen", icon: "📄" },
     { name: "Struktur", path: "/dashboard/struktur", icon: "🏢" },
-    { name: "Pengaturan", path: "/dashboard/pengaturan", icon: "⚙️" },
   ];
 
   return (
