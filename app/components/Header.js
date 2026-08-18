@@ -59,9 +59,12 @@ export default function Header() {
             >
               Arsip Program Kerja
             </Link>
-            <button className="bg-amber-700 text-white px-6 py-2 rounded-lg hover:bg-amber-800 transition-colors">
+            <Link 
+              href="/login"
+              className="bg-amber-700 text-white px-6 py-2 rounded-lg hover:bg-amber-800 transition-colors"
+            >
               Login
-            </button>
+            </Link>
           </div>
 
           <div className="md:hidden">
@@ -119,9 +122,12 @@ export default function Header() {
               >
                 Arsip Program Kerja
               </Link>
-              <button className="bg-amber-700 text-white px-6 py-2 rounded-lg hover:bg-amber-800 transition-colors w-full">
+              <Link 
+                href="/login"
+                className="bg-amber-700 text-white px-6 py-2 rounded-lg hover:bg-amber-800 transition-colors w-full text-center block"
+              >
                 Login
-              </button>
+              </Link>
             </div>
           </div>
         )}

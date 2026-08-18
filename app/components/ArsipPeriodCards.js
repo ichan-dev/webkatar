@@ -1,6 +1,9 @@
+import Link from "next/link";
+
 export default function ArsipPeriodCards() {
   const periods = [
     {
+      id: 1,
       periode: "Periode 2022 - 2023",
       ketua: "Budi Santoso",
       jabatan: "Ketua Umum",
@@ -11,6 +14,7 @@ export default function ArsipPeriodCards() {
       ]
     },
     {
+      id: 2,
       periode: "Periode 2023 - 2024",
       ketua: "Siti Rahmawati",
       jabatan: "Ketua Umum",
@@ -21,6 +25,7 @@ export default function ArsipPeriodCards() {
       ]
     },
     {
+      id: 3,
       periode: "Periode 2024 - 2025",
       ketua: "Agus Setiawan",
       jabatan: "Ketua Umum",
@@ -63,12 +68,15 @@ export default function ArsipPeriodCards() {
                 ))}
               </ul>
 
-              <button className="w-full bg-white border-2 border-amber-700 text-amber-700 py-2.5 px-4 rounded-lg hover:bg-amber-700 hover:text-white transition-colors font-medium flex items-center justify-center gap-2 group">
+              <Link 
+                href={`/arsip/${period.id}`}
+                className="w-full bg-white border-2 border-amber-700 text-amber-700 py-2.5 px-4 rounded-lg hover:bg-amber-700 hover:text-white transition-colors font-medium flex items-center justify-center gap-2 group"
+              >
                 Lihat Detail Program
                 <svg className="w-4 h-4 group-hover:translate-x-1 transition-transform" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
                 </svg>
-              </button>
+              </Link>
             </div>
           ))}
         </div>
