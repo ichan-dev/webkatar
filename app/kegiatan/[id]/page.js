@@ -2,6 +2,7 @@ import Header from "../../components/Header";
 import KegiatanDetailHero from "../../components/KegiatanDetailHero";
 import KegiatanDetailContent from "../../components/KegiatanDetailContent";
 import KegiatanGallery from "../../components/KegiatanGallery";
+import DokumenPendukung from "../../components/DokumenPendukung";
 import Footer from "../../components/Footer";
 
 export const metadata = {
@@ -31,6 +32,23 @@ const kegiatanData = {
       "https://images.unsplash.com/photo-1529156069898-49953e39b3ac?q=80&w=2070",
       "https://images.unsplash.com/photo-1522071820081-009f0129c71c?q=80&w=2070",
       "https://images.unsplash.com/photo-1511632765486-a01980e01a18?q=80&w=2070"
+    ],
+    dokumen: [
+      {
+        nama: "Laporan Pertanggungjawaban.pdf",
+        ukuran: "2.4 MB",
+        url: "/dokumen/turnamen-futsal/lpj.pdf"
+      },
+      {
+        nama: "Daftar Hadir.pdf",
+        ukuran: "1.1 MB",
+        url: "/dokumen/turnamen-futsal/daftar-hadir.pdf"
+      },
+      {
+        nama: "Dokumentasi_Anggaran.xlsx",
+        ukuran: "540 KB",
+        url: "/dokumen/turnamen-futsal/anggaran.xlsx"
+      }
     ]
   },
   2: {
@@ -54,6 +72,23 @@ const kegiatanData = {
       "https://images.unsplash.com/photo-1532629345422-7515f3d16bb6?q=80&w=2070",
       "https://images.unsplash.com/photo-1469571486292-0ba58a3f068b?q=80&w=2070",
       "https://images.unsplash.com/photo-1529156069898-49953e39b3ac?q=80&w=2070"
+    ],
+    dokumen: [
+      {
+        nama: "Laporan Kegiatan.pdf",
+        ukuran: "1.8 MB",
+        url: "/dokumen/desa-bersih/laporan.pdf"
+      },
+      {
+        nama: "Dokumentasi Foto.pdf",
+        ukuran: "3.2 MB",
+        url: "/dokumen/desa-bersih/dokumentasi.pdf"
+      },
+      {
+        nama: "Daftar Peserta.xlsx",
+        ukuran: "420 KB",
+        url: "/dokumen/desa-bersih/peserta.xlsx"
+      }
     ]
   }
 };
@@ -65,7 +100,20 @@ export default function KegiatanDetailPage({ params }) {
     <div className="min-h-screen">
       <Header />
       <KegiatanDetailHero kegiatan={kegiatan} />
-      <KegiatanDetailContent kegiatan={kegiatan} />
+      
+      <section className="py-8 bg-white">
+        <div className="max-w-screen-2xl mx-auto px-8 sm:px-12 lg:px-16">
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+            <div className="lg:col-span-2">
+              <KegiatanDetailContent kegiatan={kegiatan} />
+            </div>
+            <div className="lg:col-span-1">
+              <DokumenPendukung dokumen={kegiatan.dokumen} />
+            </div>
+          </div>
+        </div>
+      </section>
+
       <KegiatanGallery kegiatan={kegiatan} />
       <Footer />
     </div>

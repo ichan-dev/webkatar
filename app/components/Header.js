@@ -7,6 +7,7 @@ import { usePathname, useRouter } from "next/navigation";
 export default function Header() {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [isUserAuthenticated, setIsUserAuthenticated] = useState(false);
   const [username, setUsername] = useState("");
   const [showUserMenu, setShowUserMenu] = useState(false);
   const pathname = usePathname();
@@ -15,17 +16,25 @@ export default function Header() {
   useEffect(() => {
     const authStatus = localStorage.getItem("isAuthenticated");
     const storedUsername = localStorage.getItem("username");
+    const userAuthStatus = localStorage.getItem("isUserAuthenticated");
+    const storedUserName = localStorage.getItem("userName");
     
     if (authStatus === "true") {
       setIsAuthenticated(true);
       setUsername(storedUsername || "Admin");
+    } else if (userAuthStatus === "true") {
+      setIsUserAuthenticated(true);
+      setUsername(storedUserName || "User");
     }
   }, []);
 
   const handleLogout = () => {
     localStorage.removeItem("isAuthenticated");
     localStorage.removeItem("username");
+    localStorage.removeItem("isUserAuthenticated");
+    localStorage.removeItem("userName");
     setIsAuthenticated(false);
+    setIsUserAuthenticated(false);
     setUsername("");
     setShowUserMenu(false);
     router.push("/");
@@ -83,18 +92,20 @@ export default function Header() {
               Arsip Program Kerja
             </Link>
 
-            {isAuthenticated ? (
+            {(isAuthenticated || isUserAuthenticated) ? (
               <>
-                <Link 
-                  href="/dashboard" 
-                  className={`transition-colors pb-1 ${
-                    pathname.startsWith("/dashboard") 
-                      ? "text-amber-700 hover:text-amber-800 border-b-2 border-amber-600 font-medium" 
-                      : "text-gray-700 hover:text-amber-700"
-                  }`}
-                >
-                  Dashboard
-                </Link>
+                {isAuthenticated && (
+                  <Link 
+                    href="/dashboard" 
+                    className={`transition-colors pb-1 ${
+                      pathname.startsWith("/dashboard") 
+                        ? "text-amber-700 hover:text-amber-800 border-b-2 border-amber-600 font-medium" 
+                        : "text-gray-700 hover:text-amber-700"
+                    }`}
+                  >
+                    Dashboard
+                  </Link>
+                )}
                 
                 <div className="relative">
                   <button
@@ -191,18 +202,20 @@ export default function Header() {
                 Arsip Program Kerja
               </Link>
 
-              {isAuthenticated ? (
+              {(isAuthenticated || isUserAuthenticated) ? (
                 <>
-                  <Link 
-                    href="/dashboard" 
-                    className={`transition-colors pl-3 ${
-                      pathname.startsWith("/dashboard") 
-                        ? "text-amber-700 hover:text-amber-800 font-medium border-l-2 border-amber-600" 
-                        : "text-gray-700 hover:text-amber-700"
-                    }`}
-                  >
-                    Dashboard
-                  </Link>
+                  {isAuthenticated && (
+                    <Link 
+                      href="/dashboard" 
+                      className={`transition-colors pl-3 ${
+                        pathname.startsWith("/dashboard") 
+                          ? "text-amber-700 hover:text-amber-800 font-medium border-l-2 border-amber-600" 
+                          : "text-gray-700 hover:text-amber-700"
+                      }`}
+                    >
+                      Dashboard
+                    </Link>
+                  )}
                   <div className="pl-3 pt-2 border-t border-gray-200">
                     <p className="text-sm text-gray-600 mb-2">Masuk sebagai: <span className="font-medium text-gray-900">{username}</span></p>
                     <button

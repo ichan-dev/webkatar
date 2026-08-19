@@ -1,10 +1,11 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 
 export default function LoginPage() {
+  const [loginType, setLoginType] = useState("admin");
   const [showPassword, setShowPassword] = useState(false);
   const [formData, setFormData] = useState({
     username: "",
@@ -12,17 +13,44 @@ export default function LoginPage() {
   });
   const [error, setError] = useState("");
   const router = useRouter();
+  const searchParams = useSearchParams();
+
+  useEffect(() => {
+    if (loginType === "admin") {
+      const isAuthenticated = localStorage.getItem("isAuthenticated");
+      if (isAuthenticated === "true") {
+        router.push("/dashboard");
+      }
+    } else {
+      const isUserAuthenticated = localStorage.getItem("isUserAuthenticated");
+      if (isUserAuthenticated === "true") {
+        const returnUrl = searchParams.get("returnUrl") || "/";
+        router.push(returnUrl);
+      }
+    }
+  }, [loginType, router, searchParams]);
 
   const handleSubmit = (e) => {
     e.preventDefault();
     setError("");
 
-    if (formData.username === "admin" && formData.password === "admin") {
-      localStorage.setItem("isAuthenticated", "true");
-      localStorage.setItem("username", formData.username);
-      router.push("/");
+    if (loginType === "admin") {
+      if (formData.username === "admin" && formData.password === "admin") {
+        localStorage.setItem("isAuthenticated", "true");
+        localStorage.setItem("username", formData.username);
+        router.push("/dashboard");
+      } else {
+        setError("Username atau password salah");
+      }
     } else {
-      setError("Username atau password salah");
+      if (formData.username === "user" && formData.password === "user123") {
+        localStorage.setItem("isUserAuthenticated", "true");
+        localStorage.setItem("userName", formData.username);
+        const returnUrl = searchParams.get("returnUrl") || "/";
+        router.push(returnUrl);
+      } else {
+        setError("Username atau password salah");
+      }
     }
   };
 
@@ -83,6 +111,39 @@ export default function LoginPage() {
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
                   </svg>
                 </div>
+              </div>
+
+              <div className="flex gap-2 mb-6 bg-gray-100 p-1 rounded-lg">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setLoginType("admin");
+                    setFormData({ username: "", password: "" });
+                    setError("");
+                  }}
+                  className={`flex-1 py-2 px-4 rounded-md font-medium transition-colors ${
+                    loginType === "admin"
+                      ? "bg-white text-amber-700 shadow-sm"
+                      : "text-gray-600 hover:text-gray-900"
+                  }`}
+                >
+                  Admin
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setLoginType("user");
+                    setFormData({ username: "", password: "" });
+                    setError("");
+                  }}
+                  className={`flex-1 py-2 px-4 rounded-md font-medium transition-colors ${
+                    loginType === "user"
+                      ? "bg-white text-amber-700 shadow-sm"
+                      : "text-gray-600 hover:text-gray-900"
+                  }`}
+                >
+                  Anggota
+                </button>
               </div>
 
               <h2 className="text-2xl sm:text-3xl font-bold text-gray-900 text-center mb-3">
@@ -171,7 +232,7 @@ export default function LoginPage() {
 
               <div className="mt-6 text-center">
                 <p className="text-sm text-gray-500">
-                  Demo: username: <span className="font-medium">admin</span>, password: <span className="font-medium">admin</span>
+                  Demo: username: <span className="font-medium">{loginType === "admin" ? "admin" : "user"}</span>, password: <span className="font-medium">{loginType === "admin" ? "admin" : "user123"}</span>
                 </p>
               </div>
             </div>
