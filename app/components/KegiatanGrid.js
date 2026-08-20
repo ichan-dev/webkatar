@@ -1,72 +1,42 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { ref, onValue } from "firebase/database";
+import { database } from "@/lib/firebase";
 
 export default function KegiatanGrid() {
   const [currentPage, setCurrentPage] = useState(1);
+  const [kegiatan, setKegiatan] = useState([]);
 
-  const kegiatan = [
-    {
-      id: 1,
-      judul: "Program Desa Bersih",
-      deskripsi: "Kegiatan gotong royong rutin untuk menjaga kebersihan lingkungan RT 03.",
-      tanggal: "Okt 2024",
-      status: "Berlangsung",
-      statusColor: "bg-yellow-500",
-      statusIcon: "⚠",
-      image: "https://images.unsplash.com/photo-1559027615-cd4628902d4a?q=80&w=2070"
-    },
-    {
-      id: 2,
-      judul: "Turnamen Kemerdekaan",
-      deskripsi: "Perayaan HUT RI ke-79 dengan berbagai lomba olahraga dan seni budaya.",
-      tanggal: "Agu 2024",
-      status: "Selesai",
-      statusColor: "bg-green-500",
-      statusIcon: "✓",
-      image: "https://images.unsplash.com/photo-1461896836934-ffe607ba8211?q=80&w=2070"
-    },
-    {
-      id: 3,
-      judul: "Pelatihan Digital Desa",
-      deskripsi: "Workshop pengenalan pemasaran digital untuk UMKM desa.",
-      tanggal: "Nov 2024",
-      status: "Akan Datang",
-      statusColor: "bg-blue-500",
-      statusIcon: "📅",
-      image: "https://images.unsplash.com/photo-1524178232363-1fb2b075b655?q=80&w=2070"
-    },
-    {
-      id: 4,
-      judul: "Malam Keakraban",
-      deskripsi: "Acara silaturahmi tahunan untuk mempererat tali persaudaraan warga.",
-      tanggal: "Jun 2024",
-      status: "Selesai",
-      statusColor: "bg-green-500",
-      statusIcon: "✓",
-      image: "https://images.unsplash.com/photo-1533174072545-7a4b6ad7a6c3?q=80&w=2070"
-    },
-    {
-      id: 5,
-      judul: "Festival Budaya Lokal",
-      deskripsi: "Pentas seni dan budaya menampilkan kesenian tradisional desa.",
-      tanggal: "Des 2024",
-      status: "Akan Datang",
-      statusColor: "bg-blue-500",
-      statusIcon: "📅",
-      image: "https://images.unsplash.com/photo-1533174072545-7a4b6ad7a6c3?q=80&w=2070"
-    },
-    {
-      id: 6,
-      judul: "Bakti Sosial Kesehatan",
-      deskripsi: "Pemeriksaan kesehatan gratis dan donor darah untuk warga.",
-      tanggal: "Sep 2024",
-      status: "Selesai",
-      statusColor: "bg-green-500",
-      statusIcon: "✓",
-      image: "https://images.unsplash.com/photo-1559027615-cd4628902d4a?q=80&w=2070"
-    }
-  ];
+  useEffect(() => {
+    const kegiatanRef = ref(database, 'kegiatan');
+    const unsubscribe = onValue(kegiatanRef, (snapshot) => {
+      if (snapshot.exists()) {
+        const kegiatanData = snapshot.val();
+        const kegiatanArray = Object.entries(kegiatanData).map(([id, item]) => ({
+          id,
+          judul: item.judul,
+          deskripsi: item.deskripsi,
+          tanggal: item.tanggal,
+          status: item.status,
+          statusColor: 
+            item.status === "Akan Datang" ? "bg-blue-500" :
+            item.status === "Berlangsung" ? "bg-yellow-500" :
+            "bg-green-500",
+          statusIcon:
+            item.status === "Akan Datang" ? "📅" :
+            item.status === "Berlangsung" ? "⚠" :
+            "✓",
+          image: item.gambar || "https://images.unsplash.com/photo-1559027615-cd4628902d4a?q=80&w=2070"
+        }));
+        setKegiatan(kegiatanArray);
+      } else {
+        setKegiatan([]);
+      }
+    });
+
+    return () => unsubscribe();
+  }, []);
 
   const itemsPerPage = 6;
   const totalPages = Math.ceil(kegiatan.length / itemsPerPage);

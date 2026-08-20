@@ -2,6 +2,8 @@
 
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
+import { ref, onValue, remove } from "firebase/database";
+import { database } from "@/lib/firebase";
 import DashboardSidebar from "../../components/DashboardSidebar";
 import TambahAnggotaModal from "../../components/TambahAnggotaModal";
 
@@ -12,27 +14,60 @@ export default function KelolaAnggotaPage() {
     const isAuthenticated = localStorage.getItem("isAuthenticated");
     if (isAuthenticated !== "true") {
       router.push("/login");
+      return;
     }
+
+    const usersRef = ref(database, 'users');
+    const unsubscribe = onValue(usersRef, (snapshot) => {
+      if (snapshot.exists()) {
+        const usersData = snapshot.val();
+        const membersArray = Object.entries(usersData)
+          .filter(([_, user]) => user.role === "member")
+          .map(([id, user]) => ({
+            id,
+            name: user.namaLengkap,
+            status: user.statusKeaktifan,
+            username: user.username,
+            photo: user.namaLengkap?.substring(0, 2).toUpperCase() || "??",
+            photoColor: "bg-blue-500"
+          }));
+        setAllMembers(membersArray);
+      } else {
+        setAllMembers([]);
+      }
+    });
+
+    return () => unsubscribe();
   }, [router]);
 
   const [searchQuery, setSearchQuery] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
   const [isModalOpen, setIsModalOpen] = useState(false);
-  
-  const allMembers = [
-    { id: 1, name: "Budi Santoso", status: "Aktif", photo: "BS", photoColor: "bg-blue-500" },
-    { id: 2, name: "Siti Aminah", status: "Aktif", photo: "SA", photoColor: "bg-pink-500" },
-    { id: 3, name: "Ahmad Fauzi", status: "Tidak Aktif", photo: "AF", photoColor: "bg-gray-500" },
-    { id: 4, name: "Dimas Pratama", status: "Aktif", photo: "DP", photoColor: "bg-green-500" },
-    { id: 5, name: "Rina Wati", status: "Aktif", photo: "RW", photoColor: "bg-purple-500" },
-    { id: 6, name: "Andi Wijaya", status: "Aktif", photo: "AW", photoColor: "bg-yellow-500" },
-    { id: 7, name: "Linda Sari", status: "Tidak Aktif", photo: "LS", photoColor: "bg-red-500" },
-    { id: 8, name: "Bagus Nugroho", status: "Aktif", photo: "BN", photoColor: "bg-indigo-500" },
-    { id: 9, name: "Dewi Putri", status: "Aktif", photo: "DP", photoColor: "bg-teal-500" },
-    { id: 10, name: "Rudi Hartono", status: "Aktif", photo: "RH", photoColor: "bg-orange-500" },
-    { id: 11, name: "Maya Kusuma", status: "Tidak Aktif", photo: "MK", photoColor: "bg-cyan-500" },
-    { id: 12, name: "Fajar Ramadhan", status: "Aktif", photo: "FR", photoColor: "bg-lime-500" },
-  ];
+  const [allMembers, setAllMembers] = useState([]);
+  const [editingMember, setEditingMember] = useState(null);
+
+  const handleDelete = async (memberId, memberName) => {
+    if (window.confirm(`Apakah Anda yakin ingin menghapus anggota "${memberName}"?`)) {
+      try {
+        const memberRef = ref(database, `users/${memberId}`);
+        await remove(memberRef);
+        alert("Anggota berhasil dihapus!");
+      } catch (error) {
+        console.error("Error deleting member:", error);
+        alert("Gagal menghapus anggota. Silakan coba lagi.");
+      }
+    }
+  };
+
+  const handleEdit = (member) => {
+    setEditingMember(member);
+    setIsModalOpen(true);
+  };
+
+  const handleCloseModal = () => {
+    setIsModalOpen(false);
+    setEditingMember(null);
+  };
 
   const itemsPerPage = 5;
   const filteredMembers = allMembers.filter(member =>
@@ -144,10 +179,16 @@ export default function KelolaAnggotaPage() {
                     </td>
                     <td className="py-4 px-6">
                       <div className="flex gap-2">
-                        <button className="text-blue-600 hover:text-blue-800 font-medium text-sm">
+                        <button 
+                          onClick={() => handleEdit(member)}
+                          className="text-blue-600 hover:text-blue-800 font-medium text-sm"
+                        >
                           Edit
                         </button>
-                        <button className="text-red-600 hover:text-red-800 font-medium text-sm">
+                        <button 
+                          onClick={() => handleDelete(member.id, member.name)}
+                          className="text-red-600 hover:text-red-800 font-medium text-sm"
+                        >
                           Hapus
                         </button>
                       </div>
@@ -235,7 +276,8 @@ export default function KelolaAnggotaPage() {
 
       <TambahAnggotaModal 
         isOpen={isModalOpen}
-        onClose={() => setIsModalOpen(false)}
+        onClose={handleCloseModal}
+        editingMember={editingMember}
       />
     </div>
   );

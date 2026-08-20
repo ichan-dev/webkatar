@@ -4,14 +4,15 @@ import { useState, useEffect } from "react";
 import { useRouter, usePathname } from "next/navigation";
 
 export default function DokumenPendukung({ dokumen = [] }) {
-  const [isUserAuthenticated, setIsUserAuthenticated] = useState(false);
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [showLoginPrompt, setShowLoginPrompt] = useState(false);
   const router = useRouter();
   const pathname = usePathname();
 
   useEffect(() => {
+    const adminAuth = localStorage.getItem("isAuthenticated");
     const userAuth = localStorage.getItem("isUserAuthenticated");
-    setIsUserAuthenticated(userAuth === "true");
+    setIsAuthenticated(adminAuth === "true" || userAuth === "true");
   }, []);
 
   const getFileIcon = (fileName) => {
@@ -45,12 +46,12 @@ export default function DokumenPendukung({ dokumen = [] }) {
   };
 
   const handleDownload = (doc) => {
-    if (!isUserAuthenticated) {
+    if (!isAuthenticated) {
       setShowLoginPrompt(true);
       return;
     }
 
-    alert(`Mengunduh: ${doc.nama}\nCatatan: Ini adalah demo. File sebenarnya akan diunduh dari server.`);
+    window.open(doc.url, '_blank');
   };
 
   const handleLoginRedirect = () => {
@@ -100,7 +101,7 @@ export default function DokumenPendukung({ dokumen = [] }) {
           ))}
         </div>
 
-        {!isUserAuthenticated && (
+        {!isAuthenticated && (
           <div className="mt-4 p-3 bg-amber-50 border border-amber-200 rounded-lg">
             <div className="flex items-start gap-2">
               <svg className="w-5 h-5 text-amber-600 flex-shrink-0 mt-0.5" fill="currentColor" viewBox="0 0 20 20">

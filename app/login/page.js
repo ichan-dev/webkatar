@@ -3,6 +3,8 @@
 import { useState, useEffect } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
+import { ref, get, query, orderByChild, equalTo } from "firebase/database";
+import { database } from "@/lib/firebase";
 
 export default function LoginPage() {
   const [loginType, setLoginType] = useState("admin");
@@ -30,27 +32,53 @@ export default function LoginPage() {
     }
   }, [loginType, router, searchParams]);
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
     setError("");
 
-    if (loginType === "admin") {
-      if (formData.username === "admin" && formData.password === "admin") {
-        localStorage.setItem("isAuthenticated", "true");
-        localStorage.setItem("username", formData.username);
-        router.push("/dashboard");
+    try {
+      const usersRef = ref(database, 'users');
+      const snapshot = await get(usersRef);
+      
+      if (snapshot.exists()) {
+        const users = snapshot.val();
+        let foundUser = null;
+        let userId = null;
+
+        for (const [id, user] of Object.entries(users)) {
+          if (user.username === formData.username) {
+            foundUser = user;
+            userId = id;
+            break;
+          }
+        }
+
+        if (foundUser && foundUser.password === formData.password) {
+          if (loginType === "admin" && foundUser.role === "admin") {
+            localStorage.setItem("isAuthenticated", "true");
+            localStorage.setItem("username", foundUser.username);
+            localStorage.setItem("userId", userId);
+            localStorage.setItem("userRole", foundUser.role);
+            router.push("/dashboard");
+          } else if (loginType === "user" && foundUser.role === "member") {
+            localStorage.setItem("isUserAuthenticated", "true");
+            localStorage.setItem("username", foundUser.username);
+            localStorage.setItem("userId", userId);
+            localStorage.setItem("userRole", foundUser.role);
+            const returnUrl = searchParams.get("returnUrl") || "/";
+            router.push(returnUrl);
+          } else {
+            setError("Role tidak sesuai dengan tipe login");
+          }
+        } else {
+          setError("Username atau password salah");
+        }
       } else {
-        setError("Username atau password salah");
+        setError("Belum ada user terdaftar");
       }
-    } else {
-      if (formData.username === "user" && formData.password === "user123") {
-        localStorage.setItem("isUserAuthenticated", "true");
-        localStorage.setItem("userName", formData.username);
-        const returnUrl = searchParams.get("returnUrl") || "/";
-        router.push(returnUrl);
-      } else {
-        setError("Username atau password salah");
-      }
+    } catch (error) {
+      console.error("Login error:", error);
+      setError("Terjadi kesalahan. Silakan coba lagi");
     }
   };
 
@@ -162,7 +190,7 @@ export default function LoginPage() {
               <form onSubmit={handleSubmit} className="space-y-6">
                 <div>
                   <label htmlFor="username" className="block text-sm font-medium text-gray-900 mb-2">
-                    Username atau Email
+                    Username
                   </label>
                   <div className="relative">
                     <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
@@ -176,7 +204,7 @@ export default function LoginPage() {
                       name="username"
                       value={formData.username}
                       onChange={handleChange}
-                      placeholder="Masukkan username/email"
+                      placeholder="Masukkan username"
                       className="w-full pl-12 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-amber-600 focus:border-transparent outline-none transition-all"
                       required
                     />
@@ -229,12 +257,6 @@ export default function LoginPage() {
                   Masuk
                 </button>
               </form>
-
-              <div className="mt-6 text-center">
-                <p className="text-sm text-gray-500">
-                  Demo: username: <span className="font-medium">{loginType === "admin" ? "admin" : "user"}</span>, password: <span className="font-medium">{loginType === "admin" ? "admin" : "user123"}</span>
-                </p>
-              </div>
             </div>
           </div>
         </div>

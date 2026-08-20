@@ -1,8 +1,10 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { ref, push, set, update } from "firebase/database";
+import { database } from "@/lib/firebase";
 
-export default function TambahKegiatanModal({ isOpen, onClose }) {
+export default function TambahKegiatanModal({ isOpen, onClose, editingKegiatan }) {
   const [formData, setFormData] = useState({
     namaKegiatan: "",
     tanggalKegiatan: "",
@@ -12,7 +14,29 @@ export default function TambahKegiatanModal({ isOpen, onClose }) {
   });
 
   const [dokumen, setDokumen] = useState(null);
-  const [foto, setFoto] = useState(null);
+  const [foto, setFoto] = useState([]);
+
+  useEffect(() => {
+    if (editingKegiatan) {
+      setFormData({
+        namaKegiatan: editingKegiatan.judul || "",
+        tanggalKegiatan: editingKegiatan.tanggal || "",
+        lokasi: editingKegiatan.lokasi || "",
+        status: editingKegiatan.status || "",
+        deskripsi: editingKegiatan.deskripsi || "",
+      });
+    } else {
+      setFormData({
+        namaKegiatan: "",
+        tanggalKegiatan: "",
+        lokasi: "",
+        status: "",
+        deskripsi: "",
+      });
+      setDokumen(null);
+      setFoto([]);
+    }
+  }, [editingKegiatan]);
 
   if (!isOpen) return null;
 
@@ -32,10 +56,9 @@ export default function TambahKegiatanModal({ isOpen, onClose }) {
   };
 
   const handleFotoUpload = (e) => {
-    const file = e.target.files[0];
-    if (file && file.type.startsWith("image/")) {
-      setFoto(file);
-    }
+    const files = Array.from(e.target.files);
+    const imageFiles = files.filter(file => file.type.startsWith("image/"));
+    setFoto(prev => [...prev, ...imageFiles]);
   };
 
   const handleDokumenDragOver = (e) => {
@@ -56,31 +79,121 @@ export default function TambahKegiatanModal({ isOpen, onClose }) {
 
   const handleFotoDrop = (e) => {
     e.preventDefault();
-    const file = e.dataTransfer.files[0];
-    if (file && file.type.startsWith("image/")) {
-      setFoto(file);
-    }
+    const files = Array.from(e.dataTransfer.files);
+    const imageFiles = files.filter(file => file.type.startsWith("image/"));
+    setFoto(prev => [...prev, ...imageFiles]);
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    console.log("Form data:", formData, "Dokumen:", dokumen, "Foto:", foto);
-    onClose();
+    
+    try {
+      let fotoUrls = editingKegiatan?.galeri || [];
+      
+      if (foto.length > 0) {
+        const uploadPromises = foto.map(async (file) => {
+          const uploadFormData = new FormData();
+          uploadFormData.append('file', file);
+          
+          const uploadResponse = await fetch('/api/upload', {
+            method: 'POST',
+            body: uploadFormData,
+          });
+          
+          const uploadResult = await uploadResponse.json();
+          
+          if (uploadResult.success) {
+            return uploadResult.url;
+          } else {
+            throw new Error('Gagal upload foto');
+          }
+        });
+        
+        fotoUrls = await Promise.all(uploadPromises);
+      }
+      
+      let dokumenData = editingKegiatan?.dokumen || [];
+      
+      if (dokumen) {
+        const uploadFormData = new FormData();
+        uploadFormData.append('file', dokumen);
+        
+        const uploadResponse = await fetch('/api/upload', {
+          method: 'POST',
+          body: uploadFormData,
+        });
+        
+        const uploadResult = await uploadResponse.json();
+        
+        if (uploadResult.success) {
+          const fileSizeInMB = (dokumen.size / (1024 * 1024)).toFixed(2);
+          dokumenData = [{
+            nama: dokumen.name,
+            ukuran: `${fileSizeInMB} MB`,
+            url: uploadResult.url
+          }];
+        } else {
+          throw new Error('Gagal upload dokumen');
+        }
+      }
+      
+      const kegiatanData = {
+        judul: formData.namaKegiatan,
+        tanggal: formData.tanggalKegiatan,
+        lokasi: formData.lokasi,
+        status: formData.status,
+        deskripsi: formData.deskripsi,
+        gambar: fotoUrls[0] || editingKegiatan?.gambar || "",
+        galeri: fotoUrls,
+        dokumen: dokumenData,
+        updatedAt: new Date().toISOString()
+      };
+      
+      if (editingKegiatan) {
+        const kegiatanRef = ref(database, `kegiatan/${editingKegiatan.id}`);
+        await update(kegiatanRef, kegiatanData);
+        alert("Kegiatan berhasil diupdate!");
+      } else {
+        const kegiatanRef = ref(database, 'kegiatan');
+        const newKegiatanRef = push(kegiatanRef);
+        await set(newKegiatanRef, {
+          ...kegiatanData,
+          createdAt: new Date().toISOString()
+        });
+        alert("Kegiatan berhasil ditambahkan!");
+      }
+      
+      setFormData({
+        namaKegiatan: "",
+        tanggalKegiatan: "",
+        lokasi: "",
+        status: "",
+        deskripsi: "",
+      });
+      setDokumen(null);
+      setFoto([]);
+      onClose();
+    } catch (error) {
+      console.error("Error saving kegiatan:", error);
+      alert(editingKegiatan ? "Gagal mengupdate kegiatan. Silakan coba lagi." : "Gagal menambahkan kegiatan. Silakan coba lagi.");
+    }
   };
 
   const handleRemoveDokumen = () => {
     setDokumen(null);
   };
 
-  const handleRemoveFoto = () => {
-    setFoto(null);
+  const handleRemoveFoto = (index) => {
+    setFoto(prev => prev.filter((_, i) => i !== index));
   };
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
       <div className="bg-white rounded-lg shadow-xl w-full max-w-3xl max-h-[90vh] overflow-y-auto">
         <div className="sticky top-0 bg-white border-b border-gray-200 px-6 py-4 flex justify-between items-center">
-          <h2 className="text-2xl font-bold text-amber-800">Tambah Kegiatan Baru</h2>
+          <h2 className="text-2xl font-bold text-amber-800">
+            {editingKegiatan ? "Edit Kegiatan" : "Tambah Kegiatan Baru"}
+          </h2>
           <button
             onClick={onClose}
             className="text-gray-400 hover:text-gray-600 text-2xl"
@@ -258,7 +371,7 @@ export default function TambahKegiatanModal({ isOpen, onClose }) {
               onDrop={handleFotoDrop}
               className="border-2 border-dashed border-gray-300 rounded-lg p-8 text-center hover:border-amber-500 transition-colors"
             >
-              {!foto ? (
+              {foto.length === 0 ? (
                 <>
                   <svg
                     className="mx-auto h-12 w-12 text-gray-400 mb-3"
@@ -280,50 +393,56 @@ export default function TambahKegiatanModal({ isOpen, onClose }) {
                       <input
                         type="file"
                         accept="image/*"
+                        multiple
                         onChange={handleFotoUpload}
                         className="hidden"
                       />
                     </label>
                   </p>
-                  <p className="text-sm text-gray-500">Maks. ukuran 2MB</p>
+                  <p className="text-sm text-gray-500">Bisa pilih multiple foto. Foto pertama = foto utama.</p>
                 </>
               ) : (
-                <div className="flex items-center justify-between bg-gray-50 px-4 py-3 rounded">
-                  <div className="flex items-center gap-3">
-                    <svg
-                      className="h-8 w-8 text-amber-700"
-                      fill="none"
-                      stroke="currentColor"
-                      viewBox="0 0 24 24"
-                    >
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        strokeWidth={2}
-                        d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"
-                      />
-                    </svg>
-                    <span className="text-gray-700">{foto.name}</span>
+                <div className="space-y-3">
+                  <p className="text-sm text-gray-600 font-medium">{foto.length} foto dipilih (foto pertama = foto utama)</p>
+                  <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+                    {foto.map((file, index) => (
+                      <div key={index} className="relative group">
+                        <div className="aspect-square rounded-lg overflow-hidden bg-gray-100 border-2 border-gray-200">
+                          <img
+                            src={URL.createObjectURL(file)}
+                            alt={`Preview ${index + 1}`}
+                            className="w-full h-full object-cover"
+                          />
+                          {index === 0 && (
+                            <div className="absolute top-2 left-2 bg-amber-600 text-white text-xs px-2 py-1 rounded">
+                              Foto Utama
+                            </div>
+                          )}
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() => handleRemoveFoto(index)}
+                          className="absolute top-2 right-2 bg-red-600 text-white rounded-full p-1.5 opacity-0 group-hover:opacity-100 transition-opacity hover:bg-red-700"
+                        >
+                          <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                          </svg>
+                        </button>
+                      </div>
+                    ))}
                   </div>
-                  <button
-                    type="button"
-                    onClick={handleRemoveFoto}
-                    className="text-red-600 hover:text-red-800"
-                  >
-                    <svg
-                      className="h-5 w-5"
-                      fill="none"
-                      stroke="currentColor"
-                      viewBox="0 0 24 24"
-                    >
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        strokeWidth={2}
-                        d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
-                      />
-                    </svg>
-                  </button>
+                  <label className="block">
+                    <span className="text-amber-700 hover:text-amber-800 cursor-pointer font-medium text-sm">
+                      + Tambah foto lagi
+                    </span>
+                    <input
+                      type="file"
+                      accept="image/*"
+                      multiple
+                      onChange={handleFotoUpload}
+                      className="hidden"
+                    />
+                  </label>
                 </div>
               )}
             </div>

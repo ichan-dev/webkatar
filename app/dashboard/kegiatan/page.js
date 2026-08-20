@@ -2,6 +2,8 @@
 
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
+import { ref, onValue, remove } from "firebase/database";
+import { database } from "@/lib/firebase";
 import DashboardSidebar from "../../components/DashboardSidebar";
 import TambahKegiatanModal from "../../components/TambahKegiatanModal";
 
@@ -18,57 +20,65 @@ export default function KelolaKegiatanPage() {
   const [filterStatus, setFilterStatus] = useState("semua");
   const [currentPage, setCurrentPage] = useState(1);
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [allActivities, setAllActivities] = useState([]);
+  const [editingKegiatan, setEditingKegiatan] = useState(null);
 
-  const allActivities = [
-    {
-      id: 1,
-      title: "Rapat Pengurus Tahunan",
-      location: "Balai Warga RT 03",
-      date: "15 Nov 2024",
-      status: "Akan Datang",
-      statusColor: "bg-gray-200 text-gray-700",
-    },
-    {
-      id: 2,
-      title: "Kerja Bakti Bersihkan Selokan",
-      location: "Sepanjang Jalan Sukamaju",
-      date: "10 Nov 2024",
-      status: "Berlangsung",
-      statusColor: "bg-amber-600 text-white",
-    },
-    {
-      id: 3,
-      title: "Peringatan 17 Agustus",
-      location: "Lapangan RT 03",
-      date: "17 Ags 2024",
-      status: "Selesai",
-      statusColor: "bg-gray-200 text-gray-700",
-    },
-    {
-      id: 4,
-      title: "Posyandu Balita",
-      location: "Balai Warga RT 03",
-      date: "05 Nov 2024",
-      status: "Selesai",
-      statusColor: "bg-gray-200 text-gray-700",
-    },
-    {
-      id: 5,
-      title: "Gotong Royong Bulanan",
-      location: "Wilayah RT 03",
-      date: "01 Nov 2024",
-      status: "Selesai",
-      statusColor: "bg-gray-200 text-gray-700",
-    },
-    {
-      id: 6,
-      title: "Pengajian Rutin",
-      location: "Masjid RT 03",
-      date: "28 Okt 2024",
-      status: "Selesai",
-      statusColor: "bg-gray-200 text-gray-700",
-    },
-  ];
+  const handleDelete = async (kegiatanId, kegiatanTitle) => {
+    if (window.confirm(`Apakah Anda yakin ingin menghapus kegiatan "${kegiatanTitle}"?`)) {
+      try {
+        const kegiatanRef = ref(database, `kegiatan/${kegiatanId}`);
+        await remove(kegiatanRef);
+        alert("Kegiatan berhasil dihapus!");
+      } catch (error) {
+        console.error("Error deleting kegiatan:", error);
+        alert("Gagal menghapus kegiatan. Silakan coba lagi.");
+      }
+    }
+  };
+
+  const handleEdit = (kegiatan) => {
+    setEditingKegiatan(kegiatan);
+    setIsModalOpen(true);
+  };
+
+  const handleCloseModal = () => {
+    setIsModalOpen(false);
+    setEditingKegiatan(null);
+  };
+
+  useEffect(() => {
+    const isAuthenticated = localStorage.getItem("isAuthenticated");
+    if (isAuthenticated !== "true") {
+      router.push("/login");
+      return;
+    }
+
+    const kegiatanRef = ref(database, 'kegiatan');
+    const unsubscribe = onValue(kegiatanRef, (snapshot) => {
+      if (snapshot.exists()) {
+        const kegiatanData = snapshot.val();
+        const kegiatanArray = Object.entries(kegiatanData).map(([id, kegiatan]) => ({
+          id,
+          title: kegiatan.judul,
+          location: kegiatan.lokasi,
+          date: kegiatan.tanggal,
+          status: kegiatan.status,
+          statusColor: 
+            kegiatan.status === "Akan Datang" 
+              ? "bg-gray-200 text-gray-700"
+              : kegiatan.status === "Berlangsung"
+              ? "bg-amber-600 text-white"
+              : "bg-gray-200 text-gray-700",
+          ...kegiatan
+        }));
+        setAllActivities(kegiatanArray);
+      } else {
+        setAllActivities([]);
+      }
+    });
+
+    return () => unsubscribe();
+  }, [router]);
 
   const itemsPerPage = 3;
   const filteredActivities = allActivities.filter((activity) => {
@@ -196,6 +206,7 @@ export default function KelolaKegiatanPage() {
                           </svg>
                         </button>
                         <button
+                          onClick={() => handleEdit(activity)}
                           className="text-gray-600 hover:text-blue-700 transition-colors"
                           title="Edit"
                         >
@@ -214,6 +225,7 @@ export default function KelolaKegiatanPage() {
                           </svg>
                         </button>
                         <button
+                          onClick={() => handleDelete(activity.id, activity.title)}
                           className="text-gray-600 hover:text-red-700 transition-colors"
                           title="Hapus"
                         >
@@ -287,7 +299,8 @@ export default function KelolaKegiatanPage() {
 
       <TambahKegiatanModal 
         isOpen={isModalOpen}
-        onClose={() => setIsModalOpen(false)}
+        onClose={handleCloseModal}
+        editingKegiatan={editingKegiatan}
       />
     </div>
   );

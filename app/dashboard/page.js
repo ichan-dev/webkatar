@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import DashboardSidebar from "../components/DashboardSidebar";
 import StatCard from "../components/StatCard";
@@ -8,13 +8,28 @@ import RecentActivities from "../components/RecentActivities";
 
 export default function DashboardPage() {
   const router = useRouter();
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     const isAuthenticated = localStorage.getItem("isAuthenticated");
+    
     if (isAuthenticated !== "true") {
       router.push("/login");
+    } else {
+      setLoading(false);
     }
   }, [router]);
+
+  if (loading) {
+    return (
+      <div className="flex min-h-screen items-center justify-center bg-gray-50">
+        <div className="text-center">
+          <div className="w-16 h-16 border-4 border-amber-600 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+          <p className="text-gray-600">Memuat...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="flex min-h-screen bg-gray-50">
