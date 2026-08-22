@@ -1,4 +1,29 @@
+"use client";
+
+import { useState, useEffect } from "react";
+import { ref, onValue } from "firebase/database";
+import { database } from "@/lib/firebase";
+
 export default function InfoCards() {
+  const [anggotaCount, setAnggotaCount] = useState(0);
+
+  useEffect(() => {
+    const usersRef = ref(database, 'users');
+    const unsubscribe = onValue(usersRef, (snapshot) => {
+      if (snapshot.exists()) {
+        const users = snapshot.val();
+        const activeMembers = Object.values(users).filter(
+          user => user.role === "member" && user.statusKeaktifan === "Aktif"
+        );
+        setAnggotaCount(activeMembers.length);
+      } else {
+        setAnggotaCount(0);
+      }
+    });
+
+    return () => unsubscribe();
+  }, []);
+
   const cards = [
     {
       icon: (
@@ -26,7 +51,7 @@ export default function InfoCards() {
         </svg>
       ),
       title: "Anggota",
-      description: "30+ Pemuda Aktif"
+      description: anggotaCount > 0 ? `${anggotaCount}+ Pemuda Aktif` : "Memuat..."
     }
   ];
 

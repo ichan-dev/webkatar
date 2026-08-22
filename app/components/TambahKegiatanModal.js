@@ -13,8 +13,10 @@ export default function TambahKegiatanModal({ isOpen, onClose, editingKegiatan }
     deskripsi: "",
   });
 
-  const [dokumen, setDokumen] = useState(null);
+  const [dokumen, setDokumen] = useState([]);
   const [foto, setFoto] = useState([]);
+  const [existingDokumen, setExistingDokumen] = useState([]);
+  const [existingFoto, setExistingFoto] = useState([]);
 
   useEffect(() => {
     if (editingKegiatan) {
@@ -25,6 +27,10 @@ export default function TambahKegiatanModal({ isOpen, onClose, editingKegiatan }
         status: editingKegiatan.status || "",
         deskripsi: editingKegiatan.deskripsi || "",
       });
+      setExistingDokumen(editingKegiatan.dokumen || []);
+      setExistingFoto(editingKegiatan.galeri || []);
+      setDokumen([]);
+      setFoto([]);
     } else {
       setFormData({
         namaKegiatan: "",
@@ -33,8 +39,10 @@ export default function TambahKegiatanModal({ isOpen, onClose, editingKegiatan }
         status: "",
         deskripsi: "",
       });
-      setDokumen(null);
+      setDokumen([]);
       setFoto([]);
+      setExistingDokumen([]);
+      setExistingFoto([]);
     }
   }, [editingKegiatan]);
 
@@ -49,10 +57,9 @@ export default function TambahKegiatanModal({ isOpen, onClose, editingKegiatan }
   };
 
   const handleDokumenUpload = (e) => {
-    const file = e.target.files[0];
-    if (file && (file.type === "application/pdf" || file.type.includes("document"))) {
-      setDokumen(file);
-    }
+    const files = Array.from(e.target.files);
+    const docFiles = files.filter(file => file.type === "application/pdf" || file.type.includes("document"));
+    setDokumen(prev => [...prev, ...docFiles]);
   };
 
   const handleFotoUpload = (e) => {
@@ -67,10 +74,9 @@ export default function TambahKegiatanModal({ isOpen, onClose, editingKegiatan }
 
   const handleDokumenDrop = (e) => {
     e.preventDefault();
-    const file = e.dataTransfer.files[0];
-    if (file && (file.type === "application/pdf" || file.type.includes("document"))) {
-      setDokumen(file);
-    }
+    const files = Array.from(e.dataTransfer.files);
+    const docFiles = files.filter(file => file.type === "application/pdf" || file.type.includes("document"));
+    setDokumen(prev => [...prev, ...docFiles]);
   };
 
   const handleFotoDragOver = (e) => {
@@ -88,7 +94,7 @@ export default function TambahKegiatanModal({ isOpen, onClose, editingKegiatan }
     e.preventDefault();
     
     try {
-      let fotoUrls = editingKegiatan?.galeri || [];
+      let fotoUrls = existingFoto;
       
       if (foto.length > 0) {
         const uploadPromises = foto.map(async (file) => {
@@ -112,29 +118,33 @@ export default function TambahKegiatanModal({ isOpen, onClose, editingKegiatan }
         fotoUrls = await Promise.all(uploadPromises);
       }
       
-      let dokumenData = editingKegiatan?.dokumen || [];
+      let dokumenData = existingDokumen;
       
-      if (dokumen) {
-        const uploadFormData = new FormData();
-        uploadFormData.append('file', dokumen);
-        
-        const uploadResponse = await fetch('/api/upload', {
-          method: 'POST',
-          body: uploadFormData,
+      if (dokumen.length > 0) {
+        const uploadPromises = dokumen.map(async (file) => {
+          const uploadFormData = new FormData();
+          uploadFormData.append('file', file);
+          
+          const uploadResponse = await fetch('/api/upload', {
+            method: 'POST',
+            body: uploadFormData,
+          });
+          
+          const uploadResult = await uploadResponse.json();
+          
+          if (uploadResult.success) {
+            const fileSizeInMB = (file.size / (1024 * 1024)).toFixed(2);
+            return {
+              nama: file.name,
+              ukuran: `${fileSizeInMB} MB`,
+              url: uploadResult.url
+            };
+          } else {
+            throw new Error('Gagal upload dokumen');
+          }
         });
         
-        const uploadResult = await uploadResponse.json();
-        
-        if (uploadResult.success) {
-          const fileSizeInMB = (dokumen.size / (1024 * 1024)).toFixed(2);
-          dokumenData = [{
-            nama: dokumen.name,
-            ukuran: `${fileSizeInMB} MB`,
-            url: uploadResult.url
-          }];
-        } else {
-          throw new Error('Gagal upload dokumen');
-        }
+        dokumenData = await Promise.all(uploadPromises);
       }
       
       const kegiatanData = {
@@ -170,8 +180,10 @@ export default function TambahKegiatanModal({ isOpen, onClose, editingKegiatan }
         status: "",
         deskripsi: "",
       });
-      setDokumen(null);
+      setDokumen([]);
       setFoto([]);
+      setExistingDokumen([]);
+      setExistingFoto([]);
       onClose();
     } catch (error) {
       console.error("Error saving kegiatan:", error);
@@ -179,8 +191,8 @@ export default function TambahKegiatanModal({ isOpen, onClose, editingKegiatan }
     }
   };
 
-  const handleRemoveDokumen = () => {
-    setDokumen(null);
+  const handleRemoveDokumen = (index) => {
+    setDokumen(prev => prev.filter((_, i) => i !== index));
   };
 
   const handleRemoveFoto = (index) => {
@@ -291,7 +303,7 @@ export default function TambahKegiatanModal({ isOpen, onClose, editingKegiatan }
               onDrop={handleDokumenDrop}
               className="border-2 border-dashed border-gray-300 rounded-lg p-8 text-center hover:border-amber-500 transition-colors"
             >
-              {!dokumen ? (
+              {dokumen.length === 0 && existingDokumen.length === 0 ? (
                 <>
                   <svg
                     className="mx-auto h-12 w-12 text-gray-400 mb-3"
@@ -313,50 +325,125 @@ export default function TambahKegiatanModal({ isOpen, onClose, editingKegiatan }
                       <input
                         type="file"
                         accept=".pdf,.doc,.docx"
+                        multiple
                         onChange={handleDokumenUpload}
                         className="hidden"
                       />
                     </label>
                   </p>
-                  <p className="text-sm text-gray-500">Maks. ukuran 5MB</p>
+                  <p className="text-sm text-gray-500">Bisa pilih multiple dokumen. Maks. ukuran 5MB per file.</p>
                 </>
               ) : (
-                <div className="flex items-center justify-between bg-gray-50 px-4 py-3 rounded">
-                  <div className="flex items-center gap-3">
-                    <svg
-                      className="h-8 w-8 text-red-600"
-                      fill="none"
-                      stroke="currentColor"
-                      viewBox="0 0 24 24"
-                    >
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        strokeWidth={2}
-                        d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z"
-                      />
-                    </svg>
-                    <span className="text-gray-700">{dokumen.name}</span>
-                  </div>
-                  <button
-                    type="button"
-                    onClick={handleRemoveDokumen}
-                    className="text-red-600 hover:text-red-800"
-                  >
-                    <svg
-                      className="h-5 w-5"
-                      fill="none"
-                      stroke="currentColor"
-                      viewBox="0 0 24 24"
-                    >
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        strokeWidth={2}
-                        d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
-                      />
-                    </svg>
-                  </button>
+                <div className="space-y-3">
+                  {dokumen.length > 0 ? (
+                    <>
+                      <p className="text-sm text-gray-600 font-medium">{dokumen.length} dokumen baru dipilih</p>
+                      <div className="space-y-2">
+                        {dokumen.map((file, index) => (
+                          <div key={index} className="flex items-center justify-between bg-gray-50 px-4 py-3 rounded">
+                            <div className="flex items-center gap-3">
+                              <svg
+                                className="h-8 w-8 text-red-600"
+                                fill="none"
+                                stroke="currentColor"
+                                viewBox="0 0 24 24"
+                              >
+                                <path
+                                  strokeLinecap="round"
+                                  strokeLinejoin="round"
+                                  strokeWidth={2}
+                                  d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z"
+                                />
+                              </svg>
+                              <div className="text-left">
+                                <span className="text-gray-700 block">{file.name}</span>
+                                <span className="text-xs text-gray-500">{(file.size / (1024 * 1024)).toFixed(2)} MB</span>
+                              </div>
+                            </div>
+                            <button
+                              type="button"
+                              onClick={() => handleRemoveDokumen(index)}
+                              className="text-red-600 hover:text-red-800"
+                            >
+                              <svg
+                                className="h-5 w-5"
+                                fill="none"
+                                stroke="currentColor"
+                                viewBox="0 0 24 24"
+                              >
+                                <path
+                                  strokeLinecap="round"
+                                  strokeLinejoin="round"
+                                  strokeWidth={2}
+                                  d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
+                                />
+                              </svg>
+                            </button>
+                          </div>
+                        ))}
+                      </div>
+                    </>
+                  ) : (
+                    <>
+                      <p className="text-sm text-gray-600 font-medium">{existingDokumen.length} dokumen tersimpan</p>
+                      <div className="space-y-2">
+                        {existingDokumen.map((doc, index) => (
+                          <div key={index} className="flex items-center justify-between bg-gray-50 px-4 py-3 rounded">
+                            <div className="flex items-center gap-3">
+                              <svg
+                                className="h-8 w-8 text-red-600"
+                                fill="none"
+                                stroke="currentColor"
+                                viewBox="0 0 24 24"
+                              >
+                                <path
+                                  strokeLinecap="round"
+                                  strokeLinejoin="round"
+                                  strokeWidth={2}
+                                  d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z"
+                                />
+                              </svg>
+                              <div className="text-left">
+                                <span className="text-gray-700 block">{doc.nama}</span>
+                                <span className="text-xs text-gray-500">{doc.ukuran} • Dokumen tersimpan</span>
+                              </div>
+                            </div>
+                            <button
+                              type="button"
+                              onClick={() => setExistingDokumen(prev => prev.filter((_, i) => i !== index))}
+                              className="text-red-600 hover:text-red-800"
+                            >
+                              <svg
+                                className="h-5 w-5"
+                                fill="none"
+                                stroke="currentColor"
+                                viewBox="0 0 24 24"
+                              >
+                                <path
+                                  strokeLinecap="round"
+                                  strokeLinejoin="round"
+                                  strokeWidth={2}
+                                  d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
+                                />
+                              </svg>
+                            </button>
+                          </div>
+                        ))}
+                      </div>
+                    </>
+                  )}
+                  <label className="block">
+                    <span className="text-amber-700 hover:text-amber-800 cursor-pointer font-medium text-sm">
+                      + Tambah dokumen lagi
+                    </span>
+                    <input
+                      type="file"
+                      accept=".pdf,.doc,.docx"
+                      multiple
+                      onChange={handleDokumenUpload}
+                      className="hidden"
+                    />
+                  </label>
                 </div>
               )}
             </div>
@@ -371,7 +458,7 @@ export default function TambahKegiatanModal({ isOpen, onClose, editingKegiatan }
               onDrop={handleFotoDrop}
               className="border-2 border-dashed border-gray-300 rounded-lg p-8 text-center hover:border-amber-500 transition-colors"
             >
-              {foto.length === 0 ? (
+              {foto.length === 0 && existingFoto.length === 0 ? (
                 <>
                   <svg
                     className="mx-auto h-12 w-12 text-gray-400 mb-3"
@@ -403,34 +490,69 @@ export default function TambahKegiatanModal({ isOpen, onClose, editingKegiatan }
                 </>
               ) : (
                 <div className="space-y-3">
-                  <p className="text-sm text-gray-600 font-medium">{foto.length} foto dipilih (foto pertama = foto utama)</p>
-                  <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
-                    {foto.map((file, index) => (
-                      <div key={index} className="relative group">
-                        <div className="aspect-square rounded-lg overflow-hidden bg-gray-100 border-2 border-gray-200">
-                          <img
-                            src={URL.createObjectURL(file)}
-                            alt={`Preview ${index + 1}`}
-                            className="w-full h-full object-cover"
-                          />
-                          {index === 0 && (
-                            <div className="absolute top-2 left-2 bg-amber-600 text-white text-xs px-2 py-1 rounded">
-                              Foto Utama
+                  {foto.length > 0 ? (
+                    <>
+                      <p className="text-sm text-gray-600 font-medium">{foto.length} foto baru dipilih (foto pertama = foto utama)</p>
+                      <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+                        {foto.map((file, index) => (
+                          <div key={index} className="relative group">
+                            <div className="aspect-square rounded-lg overflow-hidden bg-gray-100 border-2 border-gray-200">
+                              <img
+                                src={URL.createObjectURL(file)}
+                                alt={`Preview ${index + 1}`}
+                                className="w-full h-full object-cover"
+                              />
+                              {index === 0 && (
+                                <div className="absolute top-2 left-2 bg-amber-600 text-white text-xs px-2 py-1 rounded">
+                                  Foto Utama
+                                </div>
+                              )}
                             </div>
-                          )}
-                        </div>
-                        <button
-                          type="button"
-                          onClick={() => handleRemoveFoto(index)}
-                          className="absolute top-2 right-2 bg-red-600 text-white rounded-full p-1.5 opacity-0 group-hover:opacity-100 transition-opacity hover:bg-red-700"
-                        >
-                          <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                          </svg>
-                        </button>
+                            <button
+                              type="button"
+                              onClick={() => handleRemoveFoto(index)}
+                              className="absolute top-2 right-2 bg-red-600 text-white rounded-full p-1.5 opacity-0 group-hover:opacity-100 transition-opacity hover:bg-red-700"
+                            >
+                              <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                              </svg>
+                            </button>
+                          </div>
+                        ))}
                       </div>
-                    ))}
-                  </div>
+                    </>
+                  ) : (
+                    <>
+                      <p className="text-sm text-gray-600 font-medium">{existingFoto.length} foto tersimpan</p>
+                      <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+                        {existingFoto.map((url, index) => (
+                          <div key={index} className="relative group">
+                            <div className="aspect-square rounded-lg overflow-hidden bg-gray-100 border-2 border-gray-200">
+                              <img
+                                src={url}
+                                alt={`Existing ${index + 1}`}
+                                className="w-full h-full object-cover"
+                              />
+                              {index === 0 && (
+                                <div className="absolute top-2 left-2 bg-amber-600 text-white text-xs px-2 py-1 rounded">
+                                  Foto Utama
+                                </div>
+                              )}
+                            </div>
+                            <button
+                              type="button"
+                              onClick={() => setExistingFoto(prev => prev.filter((_, i) => i !== index))}
+                              className="absolute top-2 right-2 bg-red-600 text-white rounded-full p-1.5 opacity-0 group-hover:opacity-100 transition-opacity hover:bg-red-700"
+                            >
+                              <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                              </svg>
+                            </button>
+                          </div>
+                        ))}
+                      </div>
+                    </>
+                  )}
                   <label className="block">
                     <span className="text-amber-700 hover:text-amber-800 cursor-pointer font-medium text-sm">
                       + Tambah foto lagi

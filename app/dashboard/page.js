@@ -2,6 +2,8 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
+import { ref, onValue } from "firebase/database";
+import { database } from "@/lib/firebase";
 import DashboardSidebar from "../components/DashboardSidebar";
 import StatCard from "../components/StatCard";
 import RecentActivities from "../components/RecentActivities";
@@ -9,15 +11,70 @@ import RecentActivities from "../components/RecentActivities";
 export default function DashboardPage() {
   const router = useRouter();
   const [loading, setLoading] = useState(true);
+  const [anggotaCount, setAnggotaCount] = useState(0);
+  const [kegiatanCount, setKegiatanCount] = useState(0);
+  const [arsipCount, setArsipCount] = useState(0);
+  const [strukturCount, setStrukturCount] = useState(0);
 
   useEffect(() => {
     const isAuthenticated = localStorage.getItem("isAuthenticated");
     
     if (isAuthenticated !== "true") {
       router.push("/login");
-    } else {
-      setLoading(false);
+      return;
     }
+
+    const usersRef = ref(database, 'users');
+    const unsubscribeUsers = onValue(usersRef, (snapshot) => {
+      if (snapshot.exists()) {
+        const users = snapshot.val();
+        const activeMembers = Object.values(users).filter(
+          user => user.role === "member" && user.statusKeaktifan === "Aktif"
+        );
+        setAnggotaCount(activeMembers.length);
+      } else {
+        setAnggotaCount(0);
+      }
+    });
+
+    const kegiatanRef = ref(database, 'kegiatan');
+    const unsubscribeKegiatan = onValue(kegiatanRef, (snapshot) => {
+      if (snapshot.exists()) {
+        const kegiatan = snapshot.val();
+        setKegiatanCount(Object.keys(kegiatan).length);
+      } else {
+        setKegiatanCount(0);
+      }
+    });
+
+    const arsipRef = ref(database, 'arsip');
+    const unsubscribeArsip = onValue(arsipRef, (snapshot) => {
+      if (snapshot.exists()) {
+        const arsip = snapshot.val();
+        setArsipCount(Object.keys(arsip).length);
+      } else {
+        setArsipCount(0);
+      }
+    });
+
+    const strukturRef = ref(database, 'struktur');
+    const unsubscribeStruktur = onValue(strukturRef, (snapshot) => {
+      if (snapshot.exists()) {
+        const struktur = snapshot.val();
+        setStrukturCount(Object.keys(struktur).length);
+      } else {
+        setStrukturCount(0);
+      }
+    });
+
+    setLoading(false);
+
+    return () => {
+      unsubscribeUsers();
+      unsubscribeKegiatan();
+      unsubscribeArsip();
+      unsubscribeStruktur();
+    };
   }, [router]);
 
   if (loading) {
@@ -48,21 +105,19 @@ export default function DashboardPage() {
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
           <StatCard 
             title="Anggota Aktif" 
-            value="124" 
-            trend="+12%"
+            value={anggotaCount.toString()}
           />
           <StatCard 
             title="Kegiatan" 
-            value="12" 
-            subtitle="Bulan Ini"
+            value={kegiatanCount.toString()}
           />
           <StatCard 
-            title="Dokumen" 
-            value="45"
+            title="Arsip Program Kerja" 
+            value={arsipCount.toString()}
           />
           <StatCard 
-            title="Foto Dokumentasi" 
-            value="89"
+            title="Struktur" 
+            value={strukturCount.toString()}
           />
         </div>
 

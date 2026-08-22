@@ -1,3 +1,5 @@
+import Link from "next/link";
+
 export default function Footer() {
   return (
     <footer className="bg-gray-100 pt-12 pb-6">
@@ -37,24 +39,24 @@ export default function Footer() {
             <h4 className="text-lg font-bold text-gray-900 mb-4">TAUTAN CEPAT</h4>
             <ul className="space-y-3">
               <li>
-                <a href="#beranda" className="text-gray-600 hover:text-orange-600 transition-colors">
+                <Link href="/" className="text-gray-600 hover:text-amber-700 transition-colors">
                   Beranda
-                </a>
+                </Link>
               </li>
               <li>
-                <a href="#profil" className="text-gray-600 hover:text-orange-600 transition-colors">
+                <Link href="/profil" className="text-gray-600 hover:text-amber-700 transition-colors">
                   Profil
-                </a>
+                </Link>
               </li>
               <li>
-                <a href="#kegiatan" className="text-gray-600 hover:text-orange-600 transition-colors">
+                <Link href="/kegiatan" className="text-gray-600 hover:text-amber-700 transition-colors">
                   Kegiatan
-                </a>
+                </Link>
               </li>
               <li>
-                <a href="#galeri" className="text-gray-600 hover:text-orange-600 transition-colors">
-                  Galeri
-                </a>
+                <Link href="/arsip" className="text-gray-600 hover:text-amber-700 transition-colors">
+                  Arsip Program Kerja
+                </Link>
               </li>
             </ul>
           </div>

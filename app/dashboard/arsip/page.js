@@ -5,9 +5,9 @@ import { useRouter } from "next/navigation";
 import { ref, onValue, remove } from "firebase/database";
 import { database } from "@/lib/firebase";
 import DashboardSidebar from "../../components/DashboardSidebar";
-import TambahKegiatanModal from "../../components/TambahKegiatanModal";
+import TambahArsipModal from "../../components/TambahArsipModal";
 
-export default function KelolaKegiatanPage() {
+export default function KelolaArsipPage() {
   const router = useRouter();
 
   useEffect(() => {
@@ -17,33 +17,32 @@ export default function KelolaKegiatanPage() {
     }
   }, [router]);
 
-  const [filterStatus, setFilterStatus] = useState("semua");
   const [currentPage, setCurrentPage] = useState(1);
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [allActivities, setAllActivities] = useState([]);
-  const [editingKegiatan, setEditingKegiatan] = useState(null);
+  const [allArsip, setAllArsip] = useState([]);
+  const [editingArsip, setEditingArsip] = useState(null);
 
-  const handleDelete = async (kegiatanId, kegiatanTitle) => {
-    if (window.confirm(`Apakah Anda yakin ingin menghapus kegiatan "${kegiatanTitle}"?`)) {
+  const handleDelete = async (arsipId, arsipPeriode) => {
+    if (window.confirm(`Apakah Anda yakin ingin menghapus arsip "${arsipPeriode}"?`)) {
       try {
-        const kegiatanRef = ref(database, `kegiatan/${kegiatanId}`);
-        await remove(kegiatanRef);
-        alert("Kegiatan berhasil dihapus!");
+        const arsipRef = ref(database, `arsip/${arsipId}`);
+        await remove(arsipRef);
+        alert("Arsip berhasil dihapus!");
       } catch (error) {
-        console.error("Error deleting kegiatan:", error);
-        alert("Gagal menghapus kegiatan. Silakan coba lagi.");
+        console.error("Error deleting arsip:", error);
+        alert("Gagal menghapus arsip. Silakan coba lagi.");
       }
     }
   };
 
-  const handleEdit = (kegiatan) => {
-    setEditingKegiatan(kegiatan);
+  const handleEdit = (arsip) => {
+    setEditingArsip(arsip);
     setIsModalOpen(true);
   };
 
   const handleCloseModal = () => {
     setIsModalOpen(false);
-    setEditingKegiatan(null);
+    setEditingArsip(null);
   };
 
   useEffect(() => {
@@ -53,46 +52,37 @@ export default function KelolaKegiatanPage() {
       return;
     }
 
-    const kegiatanRef = ref(database, 'kegiatan');
-    const unsubscribe = onValue(kegiatanRef, (snapshot) => {
+    const arsipRef = ref(database, 'arsip');
+    const unsubscribe = onValue(arsipRef, (snapshot) => {
       if (snapshot.exists()) {
-        const kegiatanData = snapshot.val();
-        const kegiatanArray = Object.entries(kegiatanData).map(([id, kegiatan]) => ({
+        const arsipData = snapshot.val();
+        const arsipArray = Object.entries(arsipData).map(([id, arsip]) => ({
           id,
-          title: kegiatan.judul,
-          location: kegiatan.lokasi,
-          date: kegiatan.tanggal,
-          status: kegiatan.status,
-          statusColor: 
-            kegiatan.status === "Akan Datang" 
-              ? "bg-gray-200 text-gray-700"
-              : kegiatan.status === "Berlangsung"
-              ? "bg-amber-600 text-white"
-              : "bg-gray-200 text-gray-700",
-          ...kegiatan
+          ...arsip
         }));
-        setAllActivities(kegiatanArray);
+        arsipArray.sort((a, b) => {
+          const periodeA = a.periode.match(/\d{4}/g);
+          const periodeB = b.periode.match(/\d{4}/g);
+          if (periodeA && periodeB) {
+            return parseInt(periodeB[0]) - parseInt(periodeA[0]);
+          }
+          return 0;
+        });
+        setAllArsip(arsipArray);
       } else {
-        setAllActivities([]);
+        setAllArsip([]);
       }
     });
 
     return () => unsubscribe();
   }, [router]);
 
-  const itemsPerPage = 3;
-  const filteredActivities = allActivities.filter((activity) => {
-    if (filterStatus !== "semua" && activity.status !== filterStatus) {
-      return false;
-    }
-    return true;
-  });
-
-  const totalPages = Math.ceil(filteredActivities.length / itemsPerPage);
+  const itemsPerPage = 5;
+  const totalPages = Math.ceil(allArsip.length / itemsPerPage);
   const startIndex = (currentPage - 1) * itemsPerPage;
   const endIndex = startIndex + itemsPerPage;
-  const currentActivities = filteredActivities.slice(startIndex, endIndex);
-  const totalActivities = filteredActivities.length;
+  const currentArsip = allArsip.slice(startIndex, endIndex);
+  const totalArsip = allArsip.length;
 
   return (
     <div className="flex min-h-screen bg-gray-50">
@@ -103,36 +93,20 @@ export default function KelolaKegiatanPage() {
           <div className="flex justify-between items-start mb-4">
             <div>
               <h1 className="text-3xl font-bold text-gray-900 mb-2">
-                Kelola Kegiatan
+                Kelola Arsip Program Kerja
               </h1>
               <p className="text-gray-600">
-                Manajemen agenda dan dokumentasi kegiatan RT 03.
+                Manajemen arsip program kerja dan kepengurusan Karang Taruna.
               </p>
             </div>
 
-            <div className="flex items-center gap-4">
-              <select
-                value={filterStatus}
-                onChange={(e) => {
-                  setFilterStatus(e.target.value);
-                  setCurrentPage(1);
-                }}
-                className="px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-amber-500 bg-white"
-              >
-                <option value="semua">Semua Status</option>
-                <option value="Akan Datang">Akan Datang</option>
-                <option value="Berlangsung">Berlangsung</option>
-                <option value="Selesai">Selesai</option>
-              </select>
-
-              <button 
-                onClick={() => setIsModalOpen(true)}
-                className="bg-amber-700 text-white px-6 py-2 rounded-lg hover:bg-amber-800 transition-colors font-medium flex items-center gap-2"
-              >
-                <span className="text-xl">+</span>
-                Tambah Kegiatan
-              </button>
-            </div>
+            <button 
+              onClick={() => setIsModalOpen(true)}
+              className="bg-amber-700 text-white px-6 py-2 rounded-lg hover:bg-amber-800 transition-colors font-medium flex items-center gap-2"
+            >
+              <span className="text-xl">+</span>
+              Tambah Arsip
+            </button>
           </div>
         </div>
 
@@ -141,13 +115,16 @@ export default function KelolaKegiatanPage() {
             <thead className="bg-gray-50 border-b border-gray-200">
               <tr>
                 <th className="text-left py-4 px-6 text-gray-600 font-medium text-sm">
-                  JUDUL KEGIATAN
+                  PERIODE
                 </th>
                 <th className="text-left py-4 px-6 text-gray-600 font-medium text-sm">
-                  TANGGAL
+                  KETUA
                 </th>
                 <th className="text-left py-4 px-6 text-gray-600 font-medium text-sm">
-                  STATUS
+                  JABATAN
+                </th>
+                <th className="text-left py-4 px-6 text-gray-600 font-medium text-sm">
+                  PROGRAM KERJA
                 </th>
                 <th className="text-left py-4 px-6 text-gray-600 font-medium text-sm">
                   AKSI
@@ -155,34 +132,32 @@ export default function KelolaKegiatanPage() {
               </tr>
             </thead>
             <tbody>
-              {currentActivities.length > 0 ? (
-                currentActivities.map((activity) => (
+              {currentArsip.length > 0 ? (
+                currentArsip.map((arsip) => (
                   <tr
-                    key={activity.id}
+                    key={arsip.id}
                     className="border-b border-gray-100 hover:bg-gray-50"
                   >
                     <td className="py-4 px-6">
+                      <span className="inline-block bg-yellow-100 text-yellow-800 px-3 py-1 rounded-full text-sm font-semibold">
+                        {arsip.periode}
+                      </span>
+                    </td>
+                    <td className="py-4 px-6">
                       <p className="font-medium text-gray-900">
-                        {activity.title}
-                      </p>
-                      <p className="text-sm text-gray-500">
-                        {activity.location}
+                        {arsip.ketua}
                       </p>
                     </td>
                     <td className="py-4 px-6 text-gray-700">
-                      {activity.date}
+                      {arsip.jabatan}
                     </td>
-                    <td className="py-4 px-6">
-                      <span
-                        className={`px-4 py-1 rounded-full text-sm font-medium ${activity.statusColor}`}
-                      >
-                        {activity.status}
-                      </span>
+                    <td className="py-4 px-6 text-gray-700">
+                      {arsip.programs?.length || 0} program
                     </td>
                     <td className="py-4 px-6">
                       <div className="flex gap-3">
                         <button
-                          onClick={() => handleEdit(activity)}
+                          onClick={() => handleEdit(arsip)}
                           className="text-gray-600 hover:text-blue-700 transition-colors"
                           title="Edit"
                         >
@@ -201,7 +176,7 @@ export default function KelolaKegiatanPage() {
                           </svg>
                         </button>
                         <button
-                          onClick={() => handleDelete(activity.id, activity.title)}
+                          onClick={() => handleDelete(arsip.id, arsip.periode)}
                           className="text-gray-600 hover:text-red-700 transition-colors"
                           title="Hapus"
                         >
@@ -225,20 +200,20 @@ export default function KelolaKegiatanPage() {
                 ))
               ) : (
                 <tr>
-                  <td colSpan="4" className="py-8 text-center text-gray-500">
-                    Tidak ada kegiatan yang ditemukan
+                  <td colSpan="5" className="py-8 text-center text-gray-500">
+                    Belum ada arsip yang ditambahkan
                   </td>
                 </tr>
               )}
             </tbody>
           </table>
 
-          {currentActivities.length > 0 && (
+          {currentArsip.length > 0 && (
             <div className="px-6 py-4 border-t border-gray-200 flex justify-between items-center">
               <p className="text-sm text-gray-600">
                 Menampilkan {startIndex + 1}-
-                {Math.min(endIndex, totalActivities)} dari {totalActivities}{" "}
-                kegiatan
+                {Math.min(endIndex, totalArsip)} dari {totalArsip}{" "}
+                arsip
               </p>
 
               <div className="flex items-center gap-2">
@@ -273,10 +248,10 @@ export default function KelolaKegiatanPage() {
         </div>
       </main>
 
-      <TambahKegiatanModal 
+      <TambahArsipModal 
         isOpen={isModalOpen}
         onClose={handleCloseModal}
-        editingKegiatan={editingKegiatan}
+        editingArsip={editingArsip}
       />
     </div>
   );

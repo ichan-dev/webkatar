@@ -2,8 +2,10 @@
 
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
+import { ref, onValue, remove } from "firebase/database";
+import { database } from "@/lib/firebase";
 import DashboardSidebar from "../../components/DashboardSidebar";
-import TambahPeriodeModal from "../../components/TambahPeriodeModal";
+import TambahStrukturModal from "../../components/TambahStrukturModal";
 
 export default function KelolaStrukturPage() {
   const router = useRouter();
@@ -16,27 +18,63 @@ export default function KelolaStrukturPage() {
   }, [router]);
 
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [allPeriods, setAllPeriods] = useState([]);
+  const [editingStruktur, setEditingStruktur] = useState(null);
 
-  const allPeriods = [
-    {
-      id: 1,
-      title: "Periode 2020-2022",
-      description: "Struktur kepengurusan Karang Taruna RT 03 periode 2020-2022 dengan fokus pada pemberdayaan pemuda dan pengembangan program kerja berbasis komunitas.",
-      image: "https://images.unsplash.com/photo-1522071820081-009f0129c71c?q=80&w=2070",
-    },
-    {
-      id: 2,
-      title: "Periode 2018-2020",
-      description: "Periode kepengurusan yang berfokus pada peningkatan kualitas SDM pemuda dan pembangunan infrastruktur organisasi.",
-      image: "https://images.unsplash.com/photo-1511632765486-a01980e01a18?q=80&w=2070",
-    },
-    {
-      id: 3,
-      title: "Periode 2016-2018",
-      description: "Masa pembentukan fondasi organisasi yang kuat dengan berbagai program inovatif untuk pemuda desa.",
-      image: "https://images.unsplash.com/photo-1529156069898-49953e39b3ac?q=80&w=2070",
-    },
-  ];
+  useEffect(() => {
+    const isAuthenticated = localStorage.getItem("isAuthenticated");
+    if (isAuthenticated !== "true") {
+      router.push("/login");
+      return;
+    }
+
+    const strukturRef = ref(database, 'struktur');
+    const unsubscribe = onValue(strukturRef, (snapshot) => {
+      if (snapshot.exists()) {
+        const strukturData = snapshot.val();
+        const strukturArray = Object.entries(strukturData).map(([id, struktur]) => ({
+          id,
+          title: `Periode ${struktur.periode}`,
+          periode: struktur.periode,
+          image: struktur.fotoUrl,
+          ...struktur
+        }));
+        strukturArray.sort((a, b) => {
+          const yearA = parseInt(a.periode.split('-')[0]);
+          const yearB = parseInt(b.periode.split('-')[0]);
+          return yearB - yearA;
+        });
+        setAllPeriods(strukturArray);
+      } else {
+        setAllPeriods([]);
+      }
+    });
+
+    return () => unsubscribe();
+  }, [router]);
+
+  const handleDelete = async (strukturId, strukturPeriode) => {
+    if (window.confirm(`Apakah Anda yakin ingin menghapus struktur periode ${strukturPeriode}?`)) {
+      try {
+        const strukturRef = ref(database, `struktur/${strukturId}`);
+        await remove(strukturRef);
+        alert("Struktur berhasil dihapus!");
+      } catch (error) {
+        console.error("Error deleting struktur:", error);
+        alert("Gagal menghapus struktur. Silakan coba lagi.");
+      }
+    }
+  };
+
+  const handleEdit = (struktur) => {
+    setEditingStruktur(struktur);
+    setIsModalOpen(true);
+  };
+
+  const handleCloseModal = () => {
+    setIsModalOpen(false);
+    setEditingStruktur(null);
+  };
 
   return (
     <div className="flex min-h-screen bg-gray-50">
@@ -79,15 +117,13 @@ export default function KelolaStrukturPage() {
               </div>
 
               <div className="p-6">
-                <h3 className="text-xl font-bold text-gray-900 mb-3">
+                <h3 className="text-xl font-bold text-gray-900 mb-4">
                   {period.title}
                 </h3>
-                <p className="text-gray-600 text-sm mb-4 line-clamp-3">
-                  {period.description}
-                </p>
 
                 <div className="flex items-center gap-3 pt-4 border-t border-gray-200">
                   <button
+                    onClick={() => handleEdit(period)}
                     className="flex items-center gap-2 text-gray-600 hover:text-amber-700 transition-colors"
                     title="Edit"
                   >
@@ -106,6 +142,7 @@ export default function KelolaStrukturPage() {
                     </svg>
                   </button>
                   <button
+                    onClick={() => handleDelete(period.id, period.periode)}
                     className="flex items-center gap-2 text-gray-600 hover:text-red-700 transition-colors"
                     title="Hapus"
                   >
@@ -134,9 +171,10 @@ export default function KelolaStrukturPage() {
         </footer>
       </main>
 
-      <TambahPeriodeModal
+      <TambahStrukturModal
         isOpen={isModalOpen}
-        onClose={() => setIsModalOpen(false)}
+        onClose={handleCloseModal}
+        editingStruktur={editingStruktur}
       />
     </div>
   );

@@ -11,7 +11,7 @@ export default function DashboardSidebar() {
     { name: "Dashboard", path: "/dashboard", icon: "📊" },
     { name: "Kelola Anggota", path: "/dashboard/anggota", icon: "👥" },
     { name: "Kegiatan", path: "/dashboard/kegiatan", icon: "📅" },
-    { name: "Dokumen", path: "/dashboard/dokumen", icon: "📄" },
+    { name: "Arsip Program Kerja", path: "/dashboard/arsip", icon: "📦" },
     { name: "Struktur", path: "/dashboard/struktur", icon: "🏢" },
   ];
 
