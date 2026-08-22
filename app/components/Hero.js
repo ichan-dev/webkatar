@@ -4,7 +4,7 @@ export default function Hero() {
       <div 
         className="absolute inset-0 z-0"
         style={{
-          backgroundImage: "url('https://images.unsplash.com/photo-1559827260-dc66d52bef19?q=80&w=2070')",
+          backgroundImage: "url(https://res.cloudinary.com/tmi4x5bz/image/upload/v1787403677/DSC00962.jpg)",
           backgroundSize: "cover",
           backgroundPosition: "center",
         }}
